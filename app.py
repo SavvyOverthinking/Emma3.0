@@ -26,11 +26,17 @@ CORS(app)
 emma_instance = None
 
 def get_emma():
-    """Get or create Emma instance"""
+    """Get or create Emma instance with Gemini API key"""
     global emma_instance
     if emma_instance is None:
-        emma_instance = EmmaCompanion()
-        logger.info("Initialized Emma instance")
+        # Get Gemini API key from environment
+        gemini_api_key = os.environ.get('GEMINI_API_KEY')
+        if gemini_api_key:
+            emma_instance = EmmaCompanion(gemini_api_key=gemini_api_key)
+            logger.info("Initialized Emma instance with Gemini AI")
+        else:
+            emma_instance = EmmaCompanion()
+            logger.info("Initialized Emma instance (fallback mode)")
     return emma_instance
 
 @app.route('/')

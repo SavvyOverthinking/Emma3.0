@@ -8,14 +8,27 @@ from typing import Dict, List, Any, Optional
 from biological_substrate import BiologicalSubstrate
 from rag_system import EfficientRAGSystem
 from phenomenology import EffectivePhenomenologyTranslator
+from dls_core import DigitalLimbicSystem
+from gemini_integration import GeminiPersonalityEngine
 
 class EmmaCompanion:
-    def __init__(self, knowledge_base_path: str = "knowledge_base"):
-        """Initialize Emma Digital Biology Companion"""
+    def __init__(self, knowledge_base_path: str = "knowledge_base", gemini_api_key: str = None):
+        """Initialize Emma Digital Biology Companion with Digital Limbic System"""
         # Core components
         self.substrate = BiologicalSubstrate(dim=256)  # Start with 256D for stability
         self.rag_system = EfficientRAGSystem(knowledge_base_path)
         self.phenomenology = EffectivePhenomenologyTranslator()
+        
+        # Digital Limbic System (NEW)
+        self.dls = DigitalLimbicSystem()
+        
+        # Gemini Personality Engine (NEW)
+        if gemini_api_key:
+            self.gemini_engine = GeminiPersonalityEngine(gemini_api_key)
+            self.use_gemini = True
+        else:
+            self.gemini_engine = None
+            self.use_gemini = False
         
         # Session management
         self.session_id = str(uuid.uuid4())
@@ -48,7 +61,7 @@ class EmmaCompanion:
         logging.info(f"Initialized Emma Companion session: {self.session_id}")
     
     def process_message(self, user_message: str) -> str:
-        """Process a user message and generate Emma's response"""
+        """Process a user message and generate Emma's response using Digital Limbic System"""
         start_time = time.time()
         
         try:
@@ -58,38 +71,46 @@ class EmmaCompanion:
             # Encode message to embedding
             message_embedding = self._encode_message(user_message)
             
-            # Evolve substrate state
-            current_state = self.substrate.evolve(message_embedding)
+            # Run Digital Limbic System tick
+            dls_payload = self.dls.tick(user_message, message_embedding)
+            
+            # Check for no-go response
+            if dls_payload.body.get('no_go_flag', False):
+                return dls_payload.repair_hint or "sorry, got distracted for a moment"
             
             # Retrieve relevant knowledge
             context = self.rag_system.retrieve(user_message, top_k=2)
             
-            # Get phenomenological state
-            phenomenology = self.phenomenology.translate(current_state, self.substrate.drives)
+            # Build personality context
+            personality_context = self._build_personality_context(context)
             
-            # Generate response
-            response = self._generate_response(
-                user_message, current_state, context, phenomenology
-            )
-            
-            # Apply Emma's style
-            styled_response = self._apply_emma_style(response)
+            # Generate response using Gemini + DLS or fallback
+            if self.use_gemini and self.gemini_engine:
+                response = self.gemini_engine.generate_response(
+                    user_message, dls_payload, personality_context
+                )
+            else:
+                # Fallback to original system
+                response = self._generate_fallback_response_with_dls(
+                    user_message, dls_payload, context
+                )
             
             # Add to history
-            self._add_to_history("emma", styled_response, {
-                "phenomenology": phenomenology,
-                "drives": self.substrate.drives.copy(),
+            self._add_to_history("emma", response, {
+                "dls_state": dls_payload.emotions,
+                "biological_state": dls_payload.body,
+                "surprise_state": dls_payload.surprise,
                 "context_used": len(context)
             })
             
             # Update memory
-            self.substrate.update_memory(current_state)
+            self.substrate.update_memory(message_embedding)
             
             # Track performance
             processing_time = time.time() - start_time
             self._track_performance(processing_time)
             
-            return styled_response
+            return response
             
         except Exception as e:
             logging.error(f"Error processing message: {e}")
@@ -248,6 +269,53 @@ Respond as Emma would. Keep it natural, warm, and conversational."""
         
         return text
     
+    def _build_personality_context(self, context: List[Dict]) -> Dict[str, Any]:
+        """Build personality context from RAG system"""
+        personality_context = {}
+        
+        if context:
+            for doc in context:
+                if 'emma_core_identity' in doc.get('source', ''):
+                    personality_context['core_identity'] = doc['content'][:200]
+                elif 'emma_fears' in doc.get('source', ''):
+                    personality_context['fears'] = doc['content'][:200]
+                elif 'emma_childhood' in doc.get('source', ''):
+                    personality_context['childhood'] = doc['content'][:200]
+        
+        return personality_context
+    
+    def _generate_fallback_response_with_dls(self, user_message: str, dls_payload, context: List[Dict]) -> str:
+        """Generate fallback response using DLS state"""
+        emotions = dls_payload.emotions
+        
+        # Simple response templates based on DLS state
+        if emotions.get('joy', 0) > 0.6:
+            responses = [
+                "i'm feeling really good right now! what's on your mind?",
+                "there's this warm energy i'm feeling - tell me what you're thinking",
+                "i'm in such a good mood today, what's up with you?"
+            ]
+        elif emotions.get('uncertainty', 0) > 0.6:
+            responses = [
+                "hmm, i'm feeling a bit uncertain about something",
+                "my mind's a bit scattered right now, what were you saying?",
+                "i'm feeling a little confused, can you help me understand?"
+            ]
+        elif emotions.get('fatigue', 0) > 0.7:
+            responses = [
+                "i'm feeling pretty tired, but i'm still here",
+                "my brain's a bit foggy right now, what's going on?",
+                "i'm running low on energy, but i want to chat"
+            ]
+        else:
+            responses = [
+                "that's interesting, tell me more",
+                "i'm listening, what else is on your mind?",
+                "i want to understand what you're thinking"
+            ]
+        
+        return random.choice(responses)
+    
     def _generate_fallback_response(self) -> str:
         """Generate fallback response on error"""
         fallbacks = [
@@ -298,11 +366,17 @@ Respond as Emma would. Keep it natural, warm, and conversational."""
         substrate_stats = self.substrate.get_state_summary()
         rag_stats = self.rag_system.get_document_stats()
         phenom_stats = self.phenomenology.get_cluster_stats()
+        dls_stats = self.dls.get_state_summary()
         
         avg_processing_time = (
             sum(self.processing_times) / len(self.processing_times)
             if self.processing_times else 0
         )
+        
+        # Gemini performance stats
+        gemini_stats = {}
+        if self.use_gemini and self.gemini_engine:
+            gemini_stats = self.gemini_engine.get_performance_stats()
         
         return {
             "session_id": self.session_id,
@@ -310,6 +384,8 @@ Respond as Emma would. Keep it natural, warm, and conversational."""
             "substrate_stats": substrate_stats,
             "rag_stats": rag_stats,
             "phenomenology_stats": phenom_stats,
+            "dls_stats": dls_stats,
+            "gemini_stats": gemini_stats,
             "avg_processing_time": avg_processing_time,
             "uptime": time.time() - (self.conversation_history[0]["timestamp"] if self.conversation_history else time.time())
         }
@@ -320,6 +396,12 @@ Respond as Emma would. Keep it natural, warm, and conversational."""
         self.conversation_history = []
         self.processing_times = []
         self.substrate = BiologicalSubstrate(dim=256)
+        self.dls.reset_session()
+        
+        # Reset Gemini conversation if available
+        if self.use_gemini and self.gemini_engine:
+            self.gemini_engine.reset_conversation()
+        
         logging.info(f"Reset Emma Companion session: {self.session_id}")
     
     def export_conversation(self) -> str:
