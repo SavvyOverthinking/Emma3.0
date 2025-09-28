@@ -17,6 +17,7 @@ from flask_cors import CORS
 from emma_companion import EmmaCompanion
 from session_manager import SessionManager, SessionLimits
 from system_monitor import SystemMonitor, AlertThresholds
+from config_production import get_production_config, sanitize_user_input, validate_session_limits
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,14 +28,17 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
 
-# Production components
+# Load production configuration
+prod_config = get_production_config()
+
+# Production components with config-driven limits
 session_manager = SessionManager(SessionLimits(
-    max_duration_hours=2.0,
-    max_messages=500,
-    max_memory_mb=500,
-    idle_timeout_minutes=30.0,
-    max_concurrent_sessions=20,
-    max_processing_time_seconds=30.0
+    max_duration_hours=prod_config.MAX_SESSION_DURATION / 3600,
+    max_messages=prod_config.MAX_MESSAGES_PER_SESSION,
+    max_memory_mb=prod_config.MAX_MEMORY_USAGE,
+    idle_timeout_minutes=prod_config.SESSION_IDLE_TIMEOUT / 60,
+    max_concurrent_sessions=prod_config.MAX_CONCURRENT_SESSIONS,
+    max_processing_time_seconds=prod_config.MAX_PROCESSING_TIME
 ))
 
 system_monitor = SystemMonitor(
@@ -147,7 +151,10 @@ def chat():
         if not message:
             return jsonify({'error': 'Message is required'}), 400
         
-        if len(message) > 5000:  # Limit message length
+        # Sanitize input for security
+        message = sanitize_user_input(message, prod_config)
+        
+        if len(message) > prod_config.MAX_INPUT_LENGTH:
             return jsonify({'error': 'Message too long'}), 400
         
         # Process with Emma
