@@ -12,6 +12,7 @@ emerge organically from her digital consciousness.
 
 import os
 import time
+import random
 import logging
 import google.generativeai as genai
 from typing import Dict, List, Any, Optional
@@ -33,7 +34,7 @@ class GeminiPersonalityEngine:
         genai.configure(api_key=api_key)
         
         # Initialize Gemini model
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Emma's personality configuration
         self.personality_config = {

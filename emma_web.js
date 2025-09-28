@@ -151,11 +151,26 @@ class EmmaWebInterface {
     }
 
     async processMessageWithEmma(message) {
-        // Simulate processing delay and response generation
-        await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-        
-        // Generate response based on message content
-        return this.generateResponse(message);
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.response;
+        } catch (error) {
+            console.error('Error calling backend:', error);
+            // Fallback to simulated response if backend fails
+            return this.generateResponse(message);
+        }
     }
 
     generateResponse(message) {
@@ -327,8 +342,52 @@ class EmmaWebInterface {
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
 
-    updateEmmaState() {
-        // Simulate Emma's state changes
+    async updateEmmaState() {
+        try {
+            const response = await fetch('/api/state');
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Update state bars with real data
+                const states = {
+                    fatigue: data.drives?.fatigue || 0.0,
+                    curiosity: data.drives?.curiosity || 0.7,
+                    social: data.drives?.social || 0.5,
+                    stability: data.drives?.stability || 0.9
+                };
+                
+                Object.keys(states).forEach(key => {
+                    const value = states[key];
+                    const elements = this.stateElements[key];
+                    
+                    if (elements) {
+                        elements.value.textContent = value.toFixed(2);
+                        elements.bar.style.width = `${value * 100}%`;
+                    }
+                });
+                
+                // Update phenomenology with real data
+                if (data.phenomenology) {
+                    this.phenomenologyText.textContent = data.phenomenology;
+                }
+                
+                // Update stats with real data
+                if (data.message_count !== undefined) {
+                    this.statsElements.messageCount.textContent = data.message_count;
+                }
+                
+            } else {
+                // Fallback to simulated state if API fails
+                this.updateEmmaStateSimulated();
+            }
+        } catch (error) {
+            console.error('Error fetching Emma state:', error);
+            this.updateEmmaStateSimulated();
+        }
+    }
+    
+    updateEmmaStateSimulated() {
+        // Simulate Emma's state changes (fallback)
         const states = {
             fatigue: Math.min(1.0, 0.1 + Math.random() * 0.3),
             curiosity: Math.max(0.1, 0.7 + (Math.random() - 0.5) * 0.4),
@@ -395,22 +454,35 @@ class EmmaWebInterface {
             this.setLoadingState(true);
             
             try {
-                // Reset Emma
-                this.messageCount = 0;
-                this.startTime = Date.now();
+                // Call backend reset API
+                const response = await fetch('/api/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 
-                // Clear chat
-                this.chatMessages.innerHTML = '';
-                
-                // Reset stats
-                this.updateStats(0);
-                this.updateEmmaState();
-                
-                // Add welcome message
-                this.addMessage('emma', 'Hi there! I\'m Emma. I\'m here to chat, share thoughts, and maybe help you see things from a different perspective. How are you doing today?');
+                if (response.ok) {
+                    // Reset local state
+                    this.messageCount = 0;
+                    this.startTime = Date.now();
+                    
+                    // Clear chat
+                    this.chatMessages.innerHTML = '';
+                    
+                    // Reset stats
+                    this.updateStats(0);
+                    await this.updateEmmaState();
+                    
+                    // Add welcome message
+                    this.addMessage('emma', 'Hi there! I\'m Emma. I\'m here to chat, share thoughts, and maybe help you see things from a different perspective. How are you doing today?');
+                } else {
+                    throw new Error('Failed to reset session on backend');
+                }
                 
             } catch (error) {
                 console.error('Error resetting session:', error);
+                this.addMessage('emma', 'Sorry, I had trouble resetting. Let me try a different approach...');
             } finally {
                 this.setLoadingState(false);
             }

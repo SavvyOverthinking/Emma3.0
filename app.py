@@ -44,6 +44,16 @@ def index():
     """Serve the main HTML interface"""
     return send_from_directory('.', 'index.html')
 
+@app.route('/test')
+def test_interface():
+    """Serve the test HTML interface"""
+    return send_from_directory('.', 'test_interface.html')
+
+@app.route('/minimal')
+def minimal_test():
+    """Serve the minimal test interface"""
+    return send_from_directory('.', 'minimal_test.html')
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """Process chat message"""

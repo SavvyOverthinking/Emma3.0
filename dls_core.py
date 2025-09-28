@@ -512,7 +512,7 @@ class DigitalLimbicSystem:
         # Positive reinforcement
         if self.emotional.joy > 0.7 and self.emotional.trust > 0.6:
             # Strengthen positive associations
-            self._adaptation_history.append({
+            self.adaptation_history.append({
                 'type': 'positive_reinforcement',
                 'timestamp': time.time(),
                 'intensity': self.emotional.joy
@@ -521,16 +521,16 @@ class DigitalLimbicSystem:
         # Negative feedback
         if self.emotional.uncertainty > 0.8 or self.emotional.fear > 0.7:
             # Weaken negative associations
-            self._adaptation_history.append({
+            self.adaptation_history.append({
                 'type': 'negative_feedback',
                 'timestamp': time.time(),
                 'intensity': self.emotional.uncertainty
             })
         
         # Long-term adaptation
-        if len(self._adaptation_history) > 10:
+        if len(self.adaptation_history) > 10:
             # Analyze adaptation patterns
-            recent_positive = sum(1 for a in self._adaptation_history[-10:] 
+            recent_positive = sum(1 for a in self.adaptation_history[-10:] 
                                if a['type'] == 'positive_reinforcement')
             
             if recent_positive > 7:
@@ -610,7 +610,7 @@ class DigitalLimbicSystem:
             },
             'memories_count': len(self.memories),
             'module_states': {k: v.value for k, v in self.module_states.items()},
-            'adaptation_count': len(self._adaptation_history)
+            'adaptation_count': len(self.adaptation_history)
         }
     
     def reset_session(self):
