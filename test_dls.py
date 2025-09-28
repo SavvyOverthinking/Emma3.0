@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def test_dls_basic():
     """Test basic DLS functionality"""
-    print("🧠 Testing Digital Limbic System - Basic Functionality")
+    print("Testing Digital Limbic System - Basic Functionality")
     print("=" * 60)
     
     # Initialize Emma with Gemini API key
@@ -208,16 +208,16 @@ def test_dls_performance():
     max_time = max(response_times)
     min_time = min(response_times)
     
-    print(f"\n📊 Performance Stats:")
+    print(f"\nPerformance Stats:")
     print(f"Average response time: {avg_time:.3f}s")
     print(f"Max response time: {max_time:.3f}s")
     print(f"Min response time: {min_time:.3f}s")
     
-    print("✅ Performance test completed!")
+    print("Performance test completed!")
 
 def main():
     """Run all DLS tests"""
-    print("🚀 Digital Limbic System Test Suite")
+    print("Digital Limbic System Test Suite")
     print("=" * 80)
     print("Testing Emma's sophisticated brain simulation...")
     print("=" * 80)

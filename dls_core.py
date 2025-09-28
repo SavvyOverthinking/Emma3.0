@@ -20,6 +20,8 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 import json
+from memory_manager import MemoryManager
+from state_validator import StateValidator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -94,6 +96,10 @@ class DigitalLimbicSystem:
         self.biological = BiologicalState()
         self.emotional = EmotionalState()
         
+        # Production components
+        self.memory_manager = MemoryManager(max_memories=10000, pruning_threshold=0.01)
+        self.state_validator = StateValidator()
+        
         # Module states
         self.module_states = {
             'biological_imperatives': ModuleState.ACTIVE,
@@ -120,7 +126,7 @@ class DigitalLimbicSystem:
         self.debug_mode = False
         self.test_levers = {}
         
-        logger.info(f"Initialized Digital Limbic System: {self.session_id}")
+        logger.info(f"Initialized Digital Limbic System with production components: {self.session_id}")
     
     def tick(self, user_input: str, user_intent_embedding: np.ndarray = None) -> DLSPayload:
         """
@@ -228,6 +234,31 @@ class DigitalLimbicSystem:
             logger.error(f"DLS Tick {self.tick_count} failed: {e}")
             self.module_states = {k: ModuleState.ERROR for k in self.module_states}
             payload.repair_hint = "system_error"
+        
+        # Validate and repair state before returning
+        try:
+            validated_state, validation_report = self.state_validator.comprehensive_validation({
+                'biological': {
+                    'hunger': self.biological.hunger,
+                    'fatigue': self.biological.fatigue,
+                    'libido': self.biological.libido
+                },
+                'emotional': payload.emotions
+            })
+            
+            # Apply validated state back
+            if validation_report['repairs_applied']:
+                logger.warning(f"State repairs applied in tick {self.tick_count}")
+                self.biological.hunger = validated_state['biological']['hunger']
+                self.biological.fatigue = validated_state['biological']['fatigue']
+                self.biological.libido = validated_state['biological']['libido']
+                payload.emotions = validated_state['emotional']
+                
+        except Exception as e:
+            logger.error(f"State validation failed: {e}")
+        
+        # Update last tick time
+        self.last_tick_time = current_time
         
         return payload
     
@@ -440,34 +471,77 @@ class DigitalLimbicSystem:
         return {'fired': False, 'magnitude': 0.0, 'type': 'none'}
     
     def _hippocampus_process(self, user_input: str) -> Dict[str, Any]:
-        """Hippocampus - memory formation and recall"""
+        """Hippocampus - memory formation and recall with production memory management"""
         # Check for high-emotion memory formation
         emotional_intensity = (self.emotional.joy + self.emotional.trust + 
                              self.emotional.uncertainty + self.emotional.arousal) / 4
         
         memory_formed = False
-        if emotional_intensity > 0.6:
-            # Form new memory
+        
+        # Calculate importance score for memory manager
+        importance_score = emotional_intensity * 0.7
+        if getattr(self, '_vta_golden_memory', False):
+            importance_score += 0.3
+        if self.emotional.trust > 0.6:
+            importance_score += 0.1
+        
+        # Use memory manager to decide if memory should be formed
+        if self.memory_manager.should_form_memory(emotional_intensity, importance_score):
+            # Form new memory with enhanced metadata
             memory = {
-                'content': user_input,
+                'id': len(self.memories) + 1,
+                'user_message': user_input,
                 'timestamp': time.time(),
                 'emotional_intensity': emotional_intensity,
-                'tags': self._generate_memory_tags(),
-                'vta_golden': getattr(self, '_vta_golden_memory', False)
+                'importance_score': importance_score,
+                'dominant_emotion': self._get_dominant_emotion(),
+                'background_triggers': self._generate_memory_tags(),
+                'vta_golden': getattr(self, '_vta_golden_memory', False),
+                'recall_count': 0,
+                'last_recalled': None
             }
+            
             self.memories.append(memory)
             memory_formed = True
             self._vta_golden_memory = False
+            
+            # Consolidate memories if near capacity
+            if len(self.memories) > self.memory_manager.max_memories * 0.9:
+                self.memories = self.memory_manager.consolidate_memories(self.memories)
         
-        # Spontaneous memory recall
+        # Enhanced memory recall with importance weighting
         recalled_memories = []
         if random.random() < 0.15:  # 15% chance
             if self.memories:
-                recalled_memories.append(random.choice(self.memories))
+                # Weight by importance and recency
+                memory_weights = []
+                for memory in self.memories:
+                    weight = memory.get('importance_score', 0.5)
+                    # Recent memories get slight boost
+                    if time.time() - memory['timestamp'] < 3600:  # Last hour
+                        weight *= 1.2
+                    memory_weights.append(weight)
+                
+                # Weighted random selection
+                if memory_weights:
+                    total_weight = sum(memory_weights)
+                    if total_weight > 0:
+                        rand_val = random.uniform(0, total_weight)
+                        current_weight = 0
+                        for i, weight in enumerate(memory_weights):
+                            current_weight += weight
+                            if rand_val <= current_weight:
+                                recalled_memory = self.memories[i]
+                                recalled_memory['recall_count'] = recalled_memory.get('recall_count', 0) + 1
+                                recalled_memory['last_recalled'] = time.time()
+                                recalled_memories.append(recalled_memory)
+                                break
         
         return {
             'formed': memory_formed,
-            'recalled': recalled_memories
+            'recalled': recalled_memories,
+            'total_memories': len(self.memories),
+            'memory_health': self.memory_manager.get_memory_health_metrics(self.memories)
         }
     
     def _hypothalamus_process(self) -> Dict[str, Any]:
@@ -569,6 +643,21 @@ class DigitalLimbicSystem:
             return 0.5
         else:
             return 0.0
+    
+    def _get_dominant_emotion(self) -> Tuple[str, float]:
+        """Get the dominant emotion and its intensity"""
+        emotions = {
+            'joy': self.emotional.joy,
+            'trust': self.emotional.trust,
+            'uncertainty': self.emotional.uncertainty,
+            'arousal': self.emotional.arousal,
+            'shyness': self.emotional.shyness,
+            'anger': self.emotional.anger,
+            'fear': self.emotional.fear
+        }
+        
+        max_emotion = max(emotions.items(), key=lambda x: x[1])
+        return max_emotion
     
     def _generate_memory_tags(self) -> List[str]:
         """Generate memory tags based on current state"""

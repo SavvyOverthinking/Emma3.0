@@ -17,6 +17,7 @@ import logging
 import google.generativeai as genai
 from typing import Dict, List, Any, Optional
 from dls_core import DLSPayload, DigitalLimbicSystem
+from api_wrapper import SyncResilientGeminiAPI
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,10 +32,9 @@ class GeminiPersonalityEngine:
     def __init__(self, api_key: str):
         """Initialize Gemini personality engine"""
         self.api_key = api_key
-        genai.configure(api_key=api_key)
         
-        # Initialize Gemini model
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        # Initialize resilient Gemini API wrapper
+        self.api_client = SyncResilientGeminiAPI(api_key, max_retries=3)
         
         # Emma's personality configuration
         self.personality_config = {
@@ -83,11 +83,15 @@ class GeminiPersonalityEngine:
                 user_message, dls_payload, personality_context
             )
             
-            # Generate response with Gemini
-            response = self.model.generate_content(prompt)
+            # Generate response with resilient Gemini API
+            response_text = self.api_client.generate_with_resilience(prompt, {
+                'emotional_state': dls_payload.emotions,
+                'biological_state': dls_payload.body,
+                'surprise_state': dls_payload.surprise
+            })
             
             # Apply Emma's style
-            styled_response = self._apply_emma_style(response.text)
+            styled_response = self._apply_emma_style(response_text)
             
             # Track performance
             response_time = time.time() - start_time
