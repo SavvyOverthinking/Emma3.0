@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Emma Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #chatMessages { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin: 10px 0; }
+        .message { margin: 5px 0; padding: 5px; }
+        .user { background: #e3f2fd; }
+        .emma { background: #f3e5f5; }
+        input { width: 300px; padding: 5px; }
+        button { padding: 5px 10px; margin-left: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Minimal Emma Test</h1>
+    <div id="chatMessages"></div>
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send</button>
+    
+    <script>
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const messages = document.getElementById('chatMessages');
+            const message = input.value.trim();
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            console.log('Sending message:', message);
+            
+            // Add user message
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user';
+            userDiv.textContent = 'You: ' + message;
+            messages.appendChild(userDiv);
+            
+            // Clear input
+            input.value = '';
+            
+            // Call API
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                
+                // Add Emma's response
+                const emmaDiv = document.createElement('div');
+                emmaDiv.className = 'message emma';
+                emmaDiv.textContent = 'Emma: ' + data.response;
+                messages.appendChild(emmaDiv);
+                
+                // Scroll to bottom
+                messages.scrollTop = messages.scrollHeight;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Add error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message emma';
+                errorDiv.textContent = 'Emma: Sorry, I had an error: ' + error.message;
+                messages.appendChild(errorDiv);
+            });
+        }
+        
+        // Allow Enter key
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Add initial message
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.getElementById('chatMessages');
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message emma';
+            welcomeDiv.textContent = 'Emma: Hi there! I\'m Emma. How are you doing today?';
+            messages.appendChild(welcomeDiv);
+        });
+    </script>
+</body>
+</html>
