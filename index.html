@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emma - Digital Biology Companion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #8B5A3C;
+            --secondary-color: #D4A574;
+            --accent-color: #6B8E5A;
+            --text-dark: #2C2C2C;
+            --text-light: #6B6B6B;
+            --bg-primary: #FEFCF8;
+            --bg-secondary: #F8F5F0;
+            --bg-card: #FFFFFF;
+            --border-color: #E8E2D5;
+            --shadow-light: 0 2px 12px rgba(139, 90, 60, 0.08);
+            --shadow-medium: 0 8px 32px rgba(139, 90, 60, 0.12);
+            --gradient-primary: linear-gradient(135deg, #FEFCF8 0%, #F8F5F0 100%);
+            --gradient-accent: linear-gradient(135deg, #8B5A3C 0%, #D4A574 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gradient-primary);
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--bg-secondary);
+            color: var(--primary-color);
+        }
+
+        /* Main Content */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 32px;
+            padding: 32px 0;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* Chat Section */
+        .chat-section {
+            background: var(--bg-card);
+            border-radius: 20px;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            flex-direction: column;
+            height: fit-content;
+            max-height: calc(100vh - 160px);
+        }
+
+        .chat-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .emma-avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-accent);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .chat-info {
+            flex: 1;
+        }
+
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .chat-subtitle {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: var(--accent-color);
+        }
+
+        .message.emma .message-avatar {
+            background: var(--gradient-accent);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .message.emma .message-content {
+            background: var(--bg-secondary);
+            color: var(--text-dark);
+        }
+
+        .chat-input-container {
+            padding: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .chat-input-wrapper {
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 16px 50px 16px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 15px;
+            background: var(--bg-primary);
+            color: var(--text-dark);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(139, 90, 60, 0.1);
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-light);
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-accent);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-light);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title i {
+            color: var(--primary-color);
+        }
+
+        /* Emma's State */
+        .state-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .state-item:last-child {
+            border-bottom: none;
+        }
+
+        .state-label {
+            font-size: 14px;
+            color: var(--text-light);
+        }
+
+        .state-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .state-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .state-fill {
+            height: 100%;
+            background: var(--gradient-accent);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Phenomenology */
+        .phenomenology-text {
+            font-family: 'Crimson Text', serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-dark);
+            font-style: italic;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Conversation History */
+        .history-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-role {
+            font-weight: 500;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .history-content {
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        /* Controls */
+        .control-btn {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-dark);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 8px;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .control-btn.danger {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .control-btn.danger:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            margin: 8px 0;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-light);
+            border-radius: 50%;
+            animation: pulse 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .sidebar {
+                order: -1;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 16px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .main {
+                padding: 16px 0;
+            }
+            
+            .chat-section {
+                max-height: calc(100vh - 200px);
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .loading .chat-input {
+            background: var(--bg-secondary);
+        }
+
+        /* Error States */
+        .error-message {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            color: #c53030;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <div class="logo-text">Emma</div>
+                </a>
+                <nav class="nav">
+                    <button class="nav-btn active" data-tab="chat">
+                        <i class="fas fa-comments"></i> Chat
+                    </button>
+                    <button class="nav-btn" data-tab="insights">
+                        <i class="fas fa-brain"></i> Insights
+                    </button>
+                    <button class="nav-btn" data-tab="settings">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="main">
+            <!-- Chat Section -->
+            <section class="chat-section">
+                <div class="chat-header">
+                    <div class="emma-avatar">E</div>
+                    <div class="chat-info">
+                        <div class="chat-title">Emma</div>
+                        <div class="chat-subtitle">Digital Biology Companion</div>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message emma">
+                        <div class="message-avatar">E</div>
+                        <div class="message-content">
+                            Hi there! I'm Emma. I'm here to chat, share thoughts, and maybe help you see things from a different perspective. How are you doing today?
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." maxlength="500">
+                        <button class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Emma's State -->
+                <div class="sidebar-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-heartbeat"></i>
+                        Emma's State
+                    </h3>
+                    <div class="state-item">
+                        <span class="state-label">Fatigue</span>
+                        <span class="state-value" id="fatigueValue">0.0</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="fatigueBar" style="width: 0%"></div>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Curiosity</span>
+                        <span class="state-value" id="curiosityValue">0.7</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="curiosityBar" style="width: 70%"></div>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Social</span>
+                        <span class="state-value" id="socialValue">0.5</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="socialBar" style="width: 50%"></div>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Stability</span>
+                        <span class="state-value" id="stabilityValue">0.9</span>
+                    </div>
+                    <div class="state-bar">
+                        <div class="state-fill" id="stabilityBar" style="width: 90%"></div>
+                    </div>
+                </div>
+
+                <!-- Current Phenomenology -->
+                <div class="sidebar-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-magic"></i>
+                        Emma's Experience
+                    </h3>
+                    <div class="phenomenology-text" id="phenomenologyText">
+                        a pleasant lightness in my chest
+                    </div>
+                </div>
+
+                <!-- Conversation Stats -->
+                <div class="sidebar-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Session Stats
+                    </h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="messageCount">1</div>
+                            <div class="stat-label">Messages</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="responseTime">0.2s</div>
+                            <div class="stat-label">Avg Response</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="memoryUsage">2.1MB</div>
+                            <div class="stat-label">Memory</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="uptime">0m</div>
+                            <div class="stat-label">Uptime</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="sidebar-card">
+                    <h3 class="card-title">
+                        <i class="fas fa-sliders-h"></i>
+                        Controls
+                    </h3>
+                    <button class="control-btn" id="resetBtn">
+                        <i class="fas fa-redo"></i> Reset Session
+                    </button>
+                    <button class="control-btn" id="exportBtn">
+                        <i class="fas fa-download"></i> Export Chat
+                    </button>
+                    <button class="control-btn danger" id="clearBtn">
+                        <i class="fas fa-trash"></i> Clear Memory
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <script src="emma_web.js"></script>
+</body>
+</html>
